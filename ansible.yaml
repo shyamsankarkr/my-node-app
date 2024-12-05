@@ -1,0 +1,38 @@
+---
+- name: Docker Image Build & Image Push
+  hosts: docker
+  tasks:
+    - name: Copy dockerfile
+      copy:
+        src: Dockerfile
+        dest: /home/dockerhost/
+    - name: Copy artifact
+      copy:
+        src: "{{ IMAGE_NAME }}.tar.gz"
+        dest: /home/dockerhost/
+    - name: Extract the artifact
+      command: tar -xzf /home/dockerhost/{{ IMAGE_NAME }}.tar.gz -C /home/dockerhost/
+    - name: Log in to Docker Hub
+      command: docker login -u "{{ docker_username }}" -p "{{ docker_password }}"
+      environment:
+        docker_username: "{{ docker_username }}"
+        docker_password: "{{ docker_password }}"
+    - name: Build docker image
+      command: docker build -t shyamsankar146/nodejsapp:{{ IMAGE_NAME }} /home/dockerhost/
+    - name: Push docker image
+      command: docker push shyamsankar146/nodejsapp:{{ IMAGE_NAME }}
+
+- name: K8s Deployment
+  hosts: kubernetes
+  tasks:
+    - name: Log in to Docker Hub
+      command: docker login -u "{{ docker_username }}" -p "{{ docker_password }}"
+      environment:
+        docker_username: "{{ docker_username }}"
+        docker_password: "{{ docker_password }}"
+    - name: Copy k8s file
+      copy:
+        src: k8s_deploy.yml
+        dest: /home/k8shost/
+    - name: K8s deployment
+      command: kubectl apply -f /home/k8shost/k8s_deploy.yml
